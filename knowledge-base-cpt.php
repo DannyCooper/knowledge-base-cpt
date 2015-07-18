@@ -28,7 +28,8 @@ class Olympus_Knowledge {
 	 */
 	function __construct() {
 
-		add_action( 'init', array( $this, 'init' ) );
+		$this->includes();
+		
 		add_action( 'init', array( $this, 'ot_check_version' ) );
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 		update_option( 'ot_knowledge_version', 105 );
@@ -38,7 +39,7 @@ class Olympus_Knowledge {
 	/**
 	 * Load plugin files.
 	 */
-	function init() {
+	function includes() {
 
 		// Required files for registering the post type, taxonomies. settings and widget.
 		require plugin_dir_path( __FILE__ ) . 'includes/register-cpt.php';
@@ -62,7 +63,7 @@ class Olympus_Knowledge {
 	/**
 	 * Flush rewrites.
 	 */
-	function flush_rewrites() {
+	public static function flush_rewrites() {
 
 		ot_knowledge_cpt();
 		ot_knowledge_section();
@@ -71,7 +72,7 @@ class Olympus_Knowledge {
 	}
 
 	/**
-	 * Check if rewrite rules need to be flushed after update.
+	 * Check if rewrite rules need to be flushed after update as updates don't trigger register_activation_hook().
 	 */
 	function ot_check_version() {
 
