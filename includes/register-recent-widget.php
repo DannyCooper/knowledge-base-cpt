@@ -5,7 +5,6 @@
  * @package     knowledge-base-cpt
  * @copyright   Copyright (c) 2015, Danny Cooper
  * @license     http://opensource.org/licenses/gpl-2.0.php GNU Public License
- * @since       1.0.0
  */
 
 /**
@@ -16,12 +15,16 @@ class Ot_Knowledge_Articles_Widget extends WP_Widget {
 	/**
 	 * Register widget with WordPress.
 	 */
-	function __construct() {
-		parent::__construct(
-			'ot_knowledge_articles_widget',
-			__( 'Knowledge Base Articles', 'ot-knowledge' ),
-			array( 'description' => __( 'Displays the most recent articles.', 'ot-knowledge' ) )
+	public function __construct() {
+
+		$id_base        = 'ot_knowledge_articles_widget';
+		$name           = esc_html__( 'Knowledge Base Articles', 'ot-knowledge' );
+		$widget_options = array(
+			'description'                 => esc_html__( 'Displays the most recent articles.', 'ot-knowledge' ),
+			'customize_selective_refresh' => true,
 		);
+		parent::__construct( $id_base, $name, $widget_options );
+
 	}
 
 	/**
@@ -34,34 +37,72 @@ class Ot_Knowledge_Articles_Widget extends WP_Widget {
 	 */
 	public function widget( $args, $instance ) {
 
-			extract( $args );
+		global $post;
 
-			$title = ( ! empty( $instance['title'] ) ) ? $instance['title'] : __( 'Recent Posts' );
-			$number = ( ! empty( $instance['number'] ) ) ? absint( $instance['number'] ) : 5;
+		$title            = ( ! empty( $instance['title'] ) ) ? $instance['title'] : esc_html__( 'Recent Posts' );
+		$number           = ( ! empty( $instance['number'] ) ) ? $instance['number'] : 5;
+		$section_checkbox = ( ! empty( $instance['section_checkbox'] ) ) ? $instance['section_checkbox'] : '';
 
-			echo $before_widget;
+		echo $args['before_widget']; // WPCS: XSS ok.
 
-		if ( ! empty( $instance['title'] ) ) {
-			echo $before_title . apply_filters( 'widget_title', $instance['title'] ). $after_title;
+		if ( ! empty( $title ) ) {
+			echo $args['before_title'] . apply_filters( 'widget_title', $title ) . $args['after_title']; // WPCS: XSS ok.
 		}
 
-			 $ot_query = new WP_Query( array( 'posts_per_page' => 5, 'post_status' => 'publish', 'post_type' => 'knowledge_base' ) );
+		$query_args = array(
+			'posts_per_page' => absint( $number ),
+			'post_status'    => 'publish',
+			'post_type'      => 'knowledge_base',
+		);
+
+		if ( is_single() ) {
+			$post_id[] = $post->ID;
+			$query_args['post__not_in'] = $post_id;
+		}
+
+		$terms = get_the_terms( $post->ID, 'section' );
+
+		if ( $terms && 1 === $section_checkbox ) {
+
+			$section_terms = array();
+
+			foreach ( $terms as $term ) {
+				$section_terms[] = $term->slug;
+			}
+
+			$query_args['tax_query'] = array(
+				array(
+					'taxonomy' => 'section',
+					'field'    => 'slug',
+					'terms'    => $section_terms,
+				),
+			);
+		}
+
+		$ot_query = new WP_Query( $query_args );
 
 		if ( $ot_query->have_posts() ) :
 
-			while ( $ot_query->have_posts() ) : $ot_query->the_post(); ?>
-                    <li class="widget-article">
-						<a href="<?php the_permalink() ?>" title="<?php echo esc_attr( get_the_title() ? get_the_title() : get_the_ID() ); ?>"><?php if ( get_the_title() ) { the_title();
-} else { the_ID(); } ?></a>
-                    </li>
-                
-				<?php endwhile;
+			while ( $ot_query->have_posts() ) :
+				$ot_query->the_post();
+				?>
 
-			endif;
+				<li class="widget-article">
+					<?php the_title( sprintf( '<a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a>' ); ?>
+				</li>
 
-			$ot_query->reset_postdata();
+				<?php
+			endwhile;
 
-			echo $after_widget;
+		else :
+
+			echo '<p>' . esc_html__( 'No articles found.', 'ot-knowledge' ) . '</p>';
+
+		endif;
+
+		$ot_query->reset_postdata();
+
+		echo $args['after_widget']; // WPCS: XSS ok.
 
 	}
 
@@ -73,19 +114,29 @@ class Ot_Knowledge_Articles_Widget extends WP_Widget {
 	 * @param array $instance Previously saved values from database.
 	 */
 	public function form( $instance ) {
-		$title = ! empty( $instance['title'] ) ? $instance['title'] : __( 'Latest Articles', 'ot-knowledge' );
-		$number = ( ! empty( $instance['number'] ) ) ? absint( $instance['number'] ) : 5;
+		$title            = ! empty( $instance['title'] ) ? $instance['title'] : __( 'Latest Articles', 'ot-knowledge' );
+		$number           = ! empty( $instance['number'] ) ? $instance['number'] : 5;
+		$section_checkbox = ! empty( $instance['section_checkbox'] ) ? $instance['section_checkbox'] : '';
 		?>
 
-        <p>
-			<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label> 
+		<p>
+			<label for="<?php echo $this->get_field_id( 'title' ); ?>">
+				<?php esc_attr_e( 'Title:', 'ot-knowledge' ); ?>
+			</label>
 			<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>">
-        </p>
+		</p>
 
-        <p>
+		<p>
 			<label for="<?php echo $this->get_field_id( 'number' ); ?>"><?php _e( 'Number of articles to show:' ); ?></label>
-			<input id="<?php echo $this->get_field_id( 'number' ); ?>" name="<?php echo $this->get_field_name( 'number' ); ?>" type="text" value="<?php echo $number; ?>" size="3" />
-        </p>
+			<input id="<?php echo $this->get_field_id( 'number' ); ?>" name="<?php echo $this->get_field_name( 'number' ); ?>" type="text" value="<?php echo absint( $number ); ?>" size="3" />
+		</p>
+
+		<p>
+			<input id="<?php echo $this->get_field_id( 'section_checkbox' ); ?>" name="<?php echo $this->get_field_name( 'section_checkbox' ); ?>" type="checkbox" value="1" <?php checked( '1', $section_checkbox ); ?> />
+			<label for="<?php echo $this->get_field_id( 'section_checkbox' ); ?>">
+				<?php _e( 'Show only articles from current section? <a href="https://wordpress.org/plugins/knowledge-base-cpt/faq/" target=_blank>(learn more)</a>', 'ot-knowledge' ); ?>
+			</label>
+		</p>
 
 		<?php
 	}
@@ -101,10 +152,10 @@ class Ot_Knowledge_Articles_Widget extends WP_Widget {
 	 * @return array Updated safe values to be saved.
 	 */
 	public function update( $new_instance, $old_instance ) {
-		$instance = array();
-		$instance['title'] = ( ! empty( $new_instance['title'] ) ) ? strip_tags( $new_instance['title'] ) : '';
-		$instance['number'] = ( ! empty( $new_instance['number'] ) ) ? absint( $new_instance['number'] ) : '5';
-
+		$instance                     = array();
+		$instance['title']            = ( ! empty( $new_instance['title'] ) ) ? sanitize_text_field( $new_instance['title'] ) : '';
+		$instance['number']           = ( ! empty( $new_instance['number'] ) ) ? absint( $new_instance['number'] ) : '5';
+		$instance['section_checkbox'] = ( ! empty( $new_instance['section_checkbox'] ) ) ? absint( $new_instance['section_checkbox'] ) : '';
 		return $instance;
 	}
 

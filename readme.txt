@@ -2,7 +2,7 @@
 Contributors: DannyCooper
 Tags: custom post type, knowledge base
 Requires at least: 4.0
-Tested up to: 4.2.2
+Tested up to: 4.9
 License: GPLv2 or later
 Stable tag: trunk
 
@@ -42,13 +42,44 @@ Enter a value next to 'Knowledge Base'
 
 Press 'Save Changes'.
 
+= What does the 'Show only articles from current section?' setting do? =
+
+If this option is enabled, the widget will only display articles within the same section as the current article or section being viewed.
+
+This allows you to create a 'Related Articles' widget.
+
+Leaving this option unchecked allows you to create a 'Recent Articles' widget.
+
 == Screenshots ==
 
 1. Knowledge Base permalink setting
+2. Articles Widget
 
 == Changelog ==
 
-= 1.0.5 = 
+= 1.0.9 =
+*Release Date - 18th January 2018*
+
+* Improved security
+* Improved codestyle
+
+= 1.0.8 =
+*Release Date - 15th November 2017*
+
+* Tested with latest WordPress versions.
+
+= 1.0.7 =
+*Release Date - 9th October 2017*
+
+* Tested with latest WordPress versions.
+
+= 1.0.6 =
+*Release Date - 17th September 2015*
+
+* Fix articles widget number error
+* Added articles widget section option
+
+= 1.0.5 =
 *Release Date - 18th July 2015*
 
 Refactored code using OOP principles.
@@ -69,7 +100,6 @@ Refactored code using OOP principles.
 
 * Added recent article widget
 * Added hierarchy to section taxonomy
-
 
 = 1.0.0 =
 *Release Date - 15th January 2015*
